@@ -3,47 +3,12 @@ from enum import Enum
 
 
 class Token:
-    def __init__(self, classe, lexema, tipo):
+    def __init__(self, classe, lexema, tipo, linha_inicio=None, coluna_inicio=None):
         self.classe = classe
         self.lexema = lexema
         self.tipo = tipo
-
-
-class TokenType(Enum):
-    NUM = "Num"
-    LIT = "Lit"
-    ID = "id"
-    EOF = "EOF"
-    COMENTARIO = "Comentario"
-    OPR = "OPR"
-    RCB = "RCB"
-    OPM = "OPM"
-    AB_P = "AB_P"
-    FC_P = "FC_P"
-    PTV = "PTV"
-    VIR = "VIR"
-    IGNORAR = "Ignorar"
-    ERRO = "ERRO"
-
-
-def obter_tipo_token(classe):
-    tipos = {
-        "Num": [TokenType.NUM, "inteiro"],
-        "Lit": [TokenType.LIT, "literal"],
-        "id": [TokenType.ID, None],
-        "EOF": [TokenType.EOF, None],
-        "Comentario": [TokenType.COMENTARIO, None],
-        "OPR": [TokenType.OPR, None],
-        "RCB": [TokenType.RCB, None],
-        "OPM": [TokenType.OPM, None],
-        "AB_P": [TokenType.AB_P, None],
-        "FC_P": [TokenType.FC_P, None],
-        "PTV": [TokenType.PTV, None],
-        "VIR": [TokenType.VIR, None],
-        "Ignorar": [TokenType.IGNORAR, None],
-        "ERRO": [TokenType.ERRO, None],
-    }
-    return tipos.get(classe, [None, None])
+        self.linha_inicio = linha_inicio
+        self.coluna_inicio = coluna_inicio
 
 
 class Scanner:
@@ -53,27 +18,27 @@ class Scanner:
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    def __init__(self, tabela_estados, entrada):
+    def __init__(self, tabela_simbolos, tabela_estados, entrada):
         self.estados_finais = {
-            (1, "Num"),
-            (3, "Num"),
-            (6, "Num"),
-            (8, "Lit"),
+            (1, "num"),
+            (3, "num"),
+            (6, "num"),
+            (8, "lit"),
             (9, "id"),
-            (10, "EOF"),
+            (10, "$"),
             (12, "Comentario"),
-            (13, "OPR"),
-            (14, "OPR"),
-            (15, "OPR"),
-            (16, "RCB"),
-            (17, "OPR"),
-            (18, "OPR"),
-            (19, "OPR"),
-            (20, "OPM"),
-            (21, "AB_P"),
-            (22, "FC_P"),
-            (23, "PTV"),
-            (24, "VIR"),
+            (13, "opr"),
+            (14, "opr"),
+            (15, "opr"),
+            (16, "rcb"),
+            (17, "opr"),
+            (18, "opr"),
+            (19, "opr"),
+            (20, "opm"),
+            (21, "ab_p"),
+            (22, "fc_p"),
+            (23, "pt_v"),
+            (24, "vir"),
             (25, "Ignorar"),
         }
 
@@ -86,6 +51,7 @@ class Scanner:
             tabela_estados, sep=",", quotechar="@"
         ).astype(int)
         self.ultima_classe = ""
+        self.tabela_simbolos = tabela_simbolos
 
     def pertence_alfabeto(self, caractere, estado_corrente) -> (bool, str):
         if str(caractere) in [
@@ -155,7 +121,7 @@ class Scanner:
             caractere = self.cadeia[self.indice_leitura]
 
         coluna = self.pertence_alfabeto(caractere, estado_corrente)
-        print(coluna)
+
         if coluna:
             if self.tabela_estados[coluna][estado_corrente] == -1:
                 e_final, classe = self.e_estado_final(estado_corrente)
@@ -165,6 +131,7 @@ class Scanner:
                     return ""
                 else:
                     self.ultima_classe = "ERRO sintaxe1"  # erro de sintaxe
+                    self.indice_leitura += 1
                     return ""
             else:
                 self.indice_leitura += 1
@@ -188,52 +155,7 @@ class Scanner:
                 self.ultima_classe = "ERRO caractere"  # erro caractere
                 return caractere
 
-    def recursao_estados_ref(self, estado_corrente):
-        try:
-            if self.indice_leitura >= len(self.cadeia):
-                caractere = "EOF"
-            else:
-                caractere = self.cadeia[self.indice_leitura]
-
-            coluna = self.pertence_alfabeto(caractere, estado_corrente)
-
-            if coluna:
-                if self.tabela_estados[coluna][estado_corrente] == -1:
-                    e_final, classe = self.e_estado_final(estado_corrente)
-
-                    if e_final:
-                        self.ultima_classe = classe
-                        return ""
-                    else:
-                        raise ValueError("Erro de sintaxe")
-                else:
-                    self.indice_leitura += 1
-                    self.atualiza_coordenadas(caractere)
-                    estado_corrente = self.tabela_estados[coluna][estado_corrente]
-
-                    return caractere + self.recursao_estados(estado_corrente)
-            else:
-                raise ValueError("Caractere inválido na linguagem")
-
-        except ValueError as e:
-            # Handle the error and print an appropriate message
-            if str(e) == "Erro de sintaxe":
-                if estado_corrente > 0:
-                    e_final, classe = self.e_estado_final(estado_corrente)
-
-                    if e_final:
-                        self.ultima_classe = classe
-                        return ""
-                    else:
-                        raise ValueError("Erro de sintaxe")
-                else:
-                    self.indice_leitura += 1
-                    self.atualiza_coordenadas(caractere)
-                    raise ValueError("Erro de caractere")
-            else:
-                raise
-
-    def gerar_token(self, tabela_simbolos):
+    def gerar_token(self):
         classe = "Comentario"
         tipo = None
 
@@ -249,10 +171,10 @@ class Scanner:
         elif classe == "Lit":
             tipo = "literal"
         elif classe == "id":
-            if lexema in tabela_simbolos:
-                return tabela_simbolos[lexema]
+            if lexema in self.tabela_simbolos:
+                return self.tabela_simbolos[lexema]
             else:
-                tabela_simbolos[lexema] = Token(classe, lexema, tipo)
+                self.tabela_simbolos[lexema] = Token(classe, lexema, tipo)
         elif classe.find("ERRO") > -1:
             print(
                 classe
@@ -261,4 +183,6 @@ class Scanner:
                 + " coluna : "
                 + str(self.indice_pos_y)
             )
-        return Token(classe, lexema, tipo)
+        return Token(
+            classe, lexema, tipo, str(self.indice_pos_x), str(self.indice_pos_y)
+        )

@@ -1,25 +1,20 @@
 import pandas as pd
 from scanner import Scanner
-from static import palavras_reservadas
-from scanner import Token
+from sintatico import AnalisadorSintaticoLR
+from tabela_de_simblos import tabela_simbolos
 
 if __name__ == "__main__":
-    # print(TokenType.NUM.value, type(TokenType.NUM))
-    # inicializa tabela de simbolos:
-    tabela_simbolos = {}
-    for item in palavras_reservadas:
-        tabela_simbolos[item] = Token(item, item, item)
+    scanner = Scanner(
+        tabela_simbolos,
+        tabela_estados="tabelas\\automato lexico tabela.csv",
+        entrada="entradas\\teste.txt",
+    )
 
-    with Scanner("tabelas\\automato lexico tabela.csv", "teste.txt") as scanner:
-        n = ""
-        while n != "EOF":
-            token = scanner.gerar_token(tabela_simbolos)
-            n = token.classe
-            print(
-                "Classe : ",
-                token.classe,
-                "|Lexema : ",
-                token.lexema,
-                "|Tipo : ",
-                token.tipo,
-            )
+    analisador = AnalisadorSintaticoLR(
+        scanner,
+        tabela_slr1=".\\tabelas\\slr1-parsing-table.csv",
+        producoes=".\\tabelas\\producoes.csv",
+        tabela_follow=".\\tabelas\\conjunto_follow.csv",
+    )
+
+    analisador.analisar()
