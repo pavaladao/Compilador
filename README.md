@@ -1,6 +1,7 @@
 # Compilador Mgol
 
-Este repositório contém um compilador para a linguagem Mgol, desenvolvido em Python.
+Este repositório contém um compilador para a linguagem Mgol, desenvolvido em Python. O compilador foi
+um projeto desenvolvido no bacharelado de ciência da computação e compila o programa escrito em Mgol para C
 
 ## Funcionalidades
 
